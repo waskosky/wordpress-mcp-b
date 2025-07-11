@@ -69,3 +69,39 @@ function init_wordpress_mcp() {
 
 // Initialize the plugin on plugins_loaded to ensure all dependencies are available.
 add_action( 'plugins_loaded', 'init_wordpress_mcp' );
+
+/**
+ * Enqueue the MCP-B bridge script on the front-end so browser extensions using the
+ * MCP-B Tab transport can communicate with the WordPress MCP server.
+ */
+function wordpress_mcp_enqueue_mcpb_bridge() {
+	// Load only for logged-in users with MCP enabled.
+	$options = get_option( 'wordpress_mcp_settings', array() );
+	if ( ! ( isset( $options['enabled'] ) && $options['enabled'] ) ) {
+		return;
+	}
+
+	$endpoint = rest_url( 'wp/v2/wpmcp/streamable' );
+
+	wp_register_script(
+		'wordpress-mcp-b-bridge',
+		WORDPRESS_MCP_URL . 'assets/js/mcp-b-bridge.js',
+		array(),
+		WORDPRESS_MCP_VERSION,
+		true
+	);
+
+	$rest_nonce = wp_create_nonce( 'wp_rest' );
+	wp_localize_script(
+		'wordpress-mcp-b-bridge',
+		'WPMCPB',
+		array(
+			'streamable_endpoint' => esc_url_raw( $endpoint ),
+			'rest_nonce'          => $rest_nonce,
+		)
+	);
+
+	wp_enqueue_script( 'wordpress-mcp-b-bridge' );
+}
+
+add_action( 'wp_enqueue_scripts', 'wordpress_mcp_enqueue_mcpb_bridge' );
