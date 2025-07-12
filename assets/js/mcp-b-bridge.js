@@ -24,6 +24,7 @@
    * @param {Object} payload The JSON-RPC message payload to send.
    */
   function postToClient(payload) {
+    console.debug('[MCP-B Bridge] postToClient', payload);
     if (!clientOrigin) {
       return;
     }
@@ -58,6 +59,7 @@
 
   // Handle incoming postMessage traffic from TabClientTransport.
   function handleMessage(event) {
+    console.debug('[MCP-B Bridge] received', event.data);
     try {
       if (!isAllowed(event.origin)) {
         return;
@@ -78,6 +80,23 @@
       clientOrigin = event.origin;
 
       const payload = data.payload;
+
+      // Respond to discovery pings from TabClientTransport implementations that start
+      // listening *after* the initial broadcast. This mirrors how ExtensionServerTransport
+      // works in the reference implementation.
+      if (payload === 'mcp-discover' || payload === 'mcp-ping') {
+        // Re-broadcast server ready so the late listener can resolve.
+        window.postMessage(
+          {
+            channel: channelId,
+            type: 'mcp',
+            direction: 'server-to-client',
+            payload: 'mcp-server-ready',
+          },
+          '*'
+        );
+        return;
+      }
 
       if (!payload || typeof payload !== 'object') {
         return postError(null, 'Invalid payload');
@@ -119,16 +138,17 @@
   // Listen for messages from the client.
   window.addEventListener('message', handleMessage);
 
-  // Notify any clients that the server is ready.
-  window.postMessage(
-    {
-      channel: channelId,
-      type: 'mcp',
-      direction: 'server-to-client',
-      payload: 'mcp-server-ready',
-    },
-    '*'
-  );
+  // Helper to broadcast server-ready multiple times to catch late listeners.
+  const readyEnvelope = {
+    channel: channelId,
+    type: 'mcp',
+    direction: 'server-to-client',
+    payload: 'mcp-server-ready',
+  };
+
+  [0, 500, 1500].forEach((delay) => {
+    setTimeout(() => window.postMessage(readyEnvelope, '*'), delay);
+  });
 
   window.WordPressMcpBServer = true;
 })();
