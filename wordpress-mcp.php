@@ -84,9 +84,13 @@ function wordpress_mcp_enqueue_mcpb_bridge() {
 	$endpoint = rest_url( 'wp/v2/wpmcp/streamable' );
 
 	$wp_mcpb_bridge_path = WORDPRESS_MCP_PATH . 'assets/js/mcp-b-bridge.js';
+	$bridge_url = plugins_url( 'assets/js/mcp-b-bridge.js', __FILE__ );
+	// Use protocol-relative URL so script loads over the same scheme (http/https) as the page.
+	$bridge_url = preg_replace( '#^https?:#', '', $bridge_url );
+
 	wp_register_script(
 		'wordpress-mcp-b-bridge',
-		WORDPRESS_MCP_URL . 'assets/js/mcp-b-bridge.js',
+		$bridge_url,
 		array(),
 		file_exists( $wp_mcpb_bridge_path ) ? filemtime( $wp_mcpb_bridge_path ) : WORDPRESS_MCP_VERSION,
 		true

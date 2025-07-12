@@ -146,8 +146,19 @@
     payload: 'mcp-server-ready',
   };
 
-  [0, 500, 1500].forEach((delay) => {
-    setTimeout(() => window.postMessage(readyEnvelope, '*'), delay);
+
+  // Broadcast the server-ready envelope on a back-off schedule for up to 10 seconds
+  // or until a client connection is detected (clientOrigin is set). This ensures
+  // extensions that inject after the initial page load still receive the ready
+  // signal without requiring them to proactively ping the page.
+
+  const broadcastIntervals = [0, 500, 1500, 3000, 5000, 7000, 10000];
+  broadcastIntervals.forEach((delay) => {
+    setTimeout(() => {
+      if (!clientOrigin) {
+        window.postMessage(readyEnvelope, '*');
+      }
+    }, delay);
   });
 
   window.WordPressMcpBServer = true;

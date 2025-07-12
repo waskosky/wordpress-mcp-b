@@ -75,7 +75,42 @@ class McpStreamableTransport extends McpTransportBase {
 				array( 'status' => 403 )
 			);
 		}
-		// check if the user is logged in.
+
+		// Allow unauthenticated access to benign, read-only operations so that the
+		// browser extension can discover the available tools before deciding if a
+		// privileged operation (e.g. creating a post) is necessary.
+
+		$allowed_without_auth = array(
+			'initialize',
+			'init',
+			'ping',
+			'tools/list',
+			'resources/list',
+			'resources/templates/list',
+			'prompts/list',
+		);
+
+		// Attempt to peek at the JSON-RPC payload so we know which method(s)
+		// are being requested. We cannot rely on WP_REST_Request here because the
+		// permission callback runs before the request object is instantiated.
+		$raw_body = file_get_contents( 'php://input' );
+		$messages = json_decode( $raw_body, true );
+
+		if ( null !== $messages ) {
+			$messages = isset( $messages[0] ) ? $messages : array( $messages );
+
+			foreach ( $messages as $msg ) {
+				if ( isset( $msg['method'] ) && ! in_array( $msg['method'], $allowed_without_auth, true ) ) {
+					// Require authentication for at least one of the batched methods.
+					return is_user_logged_in();
+				}
+			}
+
+			// All requested methods are in the allow-list – permit even if user is not logged in.
+			return true;
+		}
+
+		// If we cannot parse the body (e.g. invalid JSON) fall back to standard auth check.
 		return is_user_logged_in();
 	}
 

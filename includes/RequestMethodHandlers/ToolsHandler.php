@@ -78,14 +78,31 @@ class ToolsHandler {
 			);
 		}
 
-		// Clean parameters arguments.
-		if ( ! empty( $request_params['arguments'] ) ) {
-			foreach ( $request_params['arguments'] as $key => $value ) {
-				if ( empty( $value ) || 'null' === $value ) {
-					unset( $request_params['arguments'][ $key ] );
-				}
-			}
-		}
+        /*
+         * Sanitize the arguments array by removing parameters that are truly “empty”.
+         *
+         * The previous implementation used `empty()` which also considers values like
+         * 0, '0', false, and 0.0 as empty.  Many MCP tools legitimately need these
+         * values (e.g. an ID of 0 or a boolean `false`).  Stripping them causes the
+         * call to appear to complete successfully but with no real effect, because
+         * required parameters have been silently removed.
+         *
+         * We now only unset the argument when it is:
+         * – `null`
+         * – an empty string `''` (after trim)
+         * – the literal string `'null'`
+         */
+        if ( isset( $request_params['arguments'] ) && is_array( $request_params['arguments'] ) ) {
+            foreach ( $request_params['arguments'] as $key => $value ) {
+                $is_null_value        = is_null( $value );
+                $is_empty_string      = is_string( $value ) && trim( $value ) === '';
+                $is_literal_null_word = is_string( $value ) && trim( strtolower( (string) $value ) ) === 'null';
+
+                if ( $is_null_value || $is_empty_string || $is_literal_null_word ) {
+                    unset( $request_params['arguments'][ $key ] );
+                }
+            }
+        }
 
 		try {
 			// Implement a tool calling logic here.
