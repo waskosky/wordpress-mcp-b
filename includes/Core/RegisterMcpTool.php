@@ -286,7 +286,8 @@ class RegisterMcpTool {
 		// }.
 
 		// Validate each property has a type.
-		foreach ( $this->args['inputSchema']['properties'] as $property_name => $property ) {
+		$properties = (array) ( $this->args['inputSchema']['properties'] ?? array() );
+		foreach ( $properties as $property_name => $property ) {
 			if ( ! isset( $property['type'] ) ) {
 				// translators: %s: Property name.
 				throw new InvalidArgumentException( sprintf( esc_html__( "Property '%s' must have a type field.", 'wordpress-mcp' ), esc_html( $property_name ) ) );
@@ -314,8 +315,9 @@ class RegisterMcpTool {
 			}
 
 			// Check all required properties exist in properties.
+			$properties_lookup = (array) ( $this->args['inputSchema']['properties'] ?? array() );
 			foreach ( $this->args['inputSchema']['required'] as $required_property ) {
-				if ( ! isset( $this->args['inputSchema']['properties'][ $required_property ] ) ) {
+				if ( ! isset( $properties_lookup[ $required_property ] ) ) {
 					// translators: %s: Required property.
 					throw new InvalidArgumentException( sprintf( esc_html__( "Required property '%s' does not exist in properties.", 'wordpress-mcp' ), esc_html( $required_property ) ) );
 				}

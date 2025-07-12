@@ -51,7 +51,7 @@ class McpRestApiCrud {
 				'inputSchema'         => array(
 					'type'       => 'object',
 					'properties' => new \stdClass(),
-					'required'   => new \stdClass(),
+					'required'   => array(),
 				),
 				'callback'            => array( $this, 'get_available_tools' ),
 				'permission_callback' => '__return_true',
@@ -173,8 +173,17 @@ class McpRestApiCrud {
 				break;
 		}
 
-		$rest_request = new WP_REST_Request( $method, $route );
-		$rest_request->set_body_params( $data );
+		$rest_request = new \WP_REST_Request( $method, $route );
+
+		// For GET and DELETE we treat $data as query params; for others we send JSON body.
+		if ( in_array( $method, array( 'GET', 'DELETE' ), true ) ) {
+			foreach ( (array) $data as $param_key => $param_value ) {
+				$rest_request->set_param( $param_key, $param_value );
+			}
+		} else {
+			$rest_request->set_body( wp_json_encode( $data ) );
+			$rest_request->set_header( 'Content-Type', 'application/json' );
+		}
 		$response = rest_do_request( $rest_request );
 		return $response->get_data();
 	}

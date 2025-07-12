@@ -105,3 +105,4 @@ function wordpress_mcp_enqueue_mcpb_bridge() {
 }
 
 add_action( 'wp_enqueue_scripts', 'wordpress_mcp_enqueue_mcpb_bridge' );
+add_action( 'admin_enqueue_scripts', 'wordpress_mcp_enqueue_mcpb_bridge' );

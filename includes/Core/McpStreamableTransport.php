@@ -62,6 +62,11 @@ class McpStreamableTransport extends McpTransportBase {
 	 * @return bool|WP_Error
 	 */
 	public function check_permission(): WP_Error|bool {
+		// Always allow CORS preflight requests (OPTIONS) to pass so browsers can determine CORS headers.
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'OPTIONS' === $_SERVER['REQUEST_METHOD'] ) {
+			return true;
+		}
+
 		// If MCP is disabled, deny access.
 		if ( ! $this->is_mcp_enabled() ) {
 			return new WP_Error(
@@ -83,7 +88,17 @@ class McpStreamableTransport extends McpTransportBase {
 	public function handle_request( WP_REST_Request $request ) {
 		// Handle preflight requests
 		if ( 'OPTIONS' === $request->get_method() ) {
-			return new WP_REST_Response( null, 204 );
+			$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+			return new WP_REST_Response(
+				null,
+				204,
+				array(
+					'Access-Control-Allow-Origin'      => $origin,
+					'Access-Control-Allow-Credentials' => 'true',
+					'Access-Control-Allow-Methods'     => 'OPTIONS, GET, POST, PUT, PATCH, DELETE',
+					'Access-Control-Allow-Headers'     => 'Content-Type, Accept, X-WP-Nonce',
+				)
+			);
 		}
 
 		$method = $request->get_method();
@@ -177,10 +192,13 @@ class McpStreamableTransport extends McpTransportBase {
 			// Return single result or batch
 			$response_body = count( $results ) === 1 ? $results[0] : $results;
 
+			$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
 			$headers = array(
 				'Content-Type'                 => 'application/json',
-				'Access-Control-Allow-Origin'  => '*',
+				'Access-Control-Allow-Origin'  => $origin,
+				'Access-Control-Allow-Credentials' => 'true',
 				'Access-Control-Allow-Methods' => 'OPTIONS, GET, POST, PUT, PATCH, DELETE',
+				'Access-Control-Allow-Headers' => 'Content-Type, Accept, X-WP-Nonce',
 			);
 
 			return new WP_REST_Response( $response_body, 200, $headers );
