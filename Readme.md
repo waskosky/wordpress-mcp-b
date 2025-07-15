@@ -6,7 +6,7 @@ This repository is a fork of the Wordpress MCP plugin (https://github.com/Automa
 
 ```bash
 cd wp-content/plugins/
-git clone https://github.com/Automattic/wordpress-mcp.git
+git clone https://github.com/waskosky/wordpress-mcp-b.git
 cd wordpress-mcp
 composer install --no-dev
 npm install && npm run build
